@@ -52,6 +52,7 @@ class HttpRequest(object):
     def get_host(self):
         """Returns the HTTP host using the environment or request headers."""
         # We try three options, in order of decreasing preference.
+        validate = True
         if settings.USE_X_FORWARDED_HOST and (
             'HTTP_X_FORWARDED_HOST' in self.META):
             host = self.META['HTTP_X_FORWARDED_HOST']
@@ -59,13 +60,14 @@ class HttpRequest(object):
             host = self.META['HTTP_HOST']
         else:
             # Reconstruct the host using the algorithm from PEP 333.
+            validate = False
             host = self.META['SERVER_NAME']
             server_port = str(self.META['SERVER_PORT'])
             if server_port != ('443' if self.is_secure() else '80'):
                 host = '%s:%s' % (host, server_port)
 
         allowed_hosts = ['*'] if settings.DEBUG else settings.ALLOWED_HOSTS
-        if validate_host(host, allowed_hosts):
+        if not validate or validate_host(host, allowed_hosts):
             return host
         else:
             raise SuspiciousOperation(
